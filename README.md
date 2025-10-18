@@ -90,30 +90,33 @@ For a more in-depth description of my data preparation process, please consult t
 
 ### Modeling
 
-I am competing in the Kaggle/RSNA [Intercranial Aneurysm Detection Competition](https://www.kaggle.com/competitions/rsna-intracranial-aneurysm-detection). The repository for my competition entry is [kyledunne/aneurysm-detection](https://github.com/kyledunne/aneurysm-detection).
+In my initial report and initial round of modeling, I created a simple convolutional network using Tensorflow/Keras that performed binary classification on my prepared images, predicting either a 1 (aneurysm present) or 0 (aneurysm absent). After a discussion with Dr. Puyo, Niyati, and Yelena, they encouraged trying to additionally predict an alternative target, which I have called in_brain_with_aneurysm. This is a binary classification target which is not mutually exclusive with the original target (which I now call aneurysm_visible_in_image). Dr. Puyo and Niyati had suggested that it may be possible to detect brains that likely have an aneurysm - or maybe are just at risk of an aneurysm - using images from brains that are affected by an aneurysm but in some other region of the brain not visible in the image. This is because aneurysms are sometimes correlated with various other kinds of health issues. In particular, an aneurysm is generally the product of weakened arterial linings. This (or some other potential correlates) may be subtly visible throughout the brain even if an aneurysm is not visible.
 
-*This* repository contains my *final* report and code for my capstone project. I moved the code and write-up out of the competition repository for clarity and to align with the grading guidelines.
+In this stage of modeling, I created a CNN with a 2-node Dense sigmoid output layer, to account for the two non-mutually exclusive binary classification targets. Results were mixed initially, and I decided it might be a better idea to train an entirely separate neural network for each task, allowing me to optimize the network architecture for each separate binary classification task individually.
 
-Please note that my *initial* report for my capstone project is in a third repository, [kyledunne/mlai-capstone](https://github.com/kyledunne/mlai-capstone).
+*Below: results of my initial test using the same model to predict both `in_brain_with_aneurysm` and `aneurysm_visible_in_image`. Note that the recall score for `aneurysm_visible_in_image` - very important in this context, because we really don't want false negatives - peaks at about 30%, far lower than the 78% peak in my initial experiment.*
 
-# Final Report
+![Graph showing accuracy, precision, and recall performance of dual network](images/dual_model_visible_performance.png)
 
-This final report is a continuation of the original analysis in the [mlai-capstone](https://github.com/kyledunne/mlai-capstone) initial report. The code for this continued analysis is in the Jupyter notebook [Aneurysm Detection Notebook Part 2](aneurysm_detection.ipynb) I finished the first part of the project on October 3rd, and the final report is due on October 8th, so I only had a few days to make additions - I did a lot of work for the first stage of the project, though.
+This hunch that two separate neural networks would be a better idea received strong support in my experiments. I used KerasTuner using the [Hyperband](https://keras.io/keras_tuner/api/tuners/hyperband/) algorithm to select hyperparameters for my neural network (training this took many hours). What I found is that running the Hyperband tuner on my network trained to predict the aneurysm_visible_in_image target found a particular set of strong hyperparameters, while running the Hyperband tuner on my network trained to predict the in_brain_with_aneurysm target found that quite a different set of hyperparameters was optimal (or at least close to optimal given my limited configuration/computational resources/time etc.)
 
-Nevertheless, in these few days I want to take the opportunity to make a few upgrades to my process and model. The three upgrades I am targeting are as follows:
+I also found substantially lower validation loss values on these new experiments than I found for my dual-purpose model.
 
-- Use [KerasTuner](https://keras.io/keras_tuner/) to optimize hyperparameters of my CNN
-- Use and fine-tune a pre-existing image classifier as a base, that has been trained specifically for classifying medical images
-- Finally, use and fine-tune a more standard image classifier as a base, such as one that has been trained on ImageNet.
-- Compare the performance of the completely-from-scratch CNN, the model using a medical imaging base model, and the model using a more typical base model
+### Evaluation
 
-I hope to complete these tasks and analyze them by the due date of the final project, October 8th. However, the final submission deadline for the *competition* is October 14th, and I will continue working on this project until (at least) that date. Any additional work will be completed in the [competition repository](https://github.com/kyledunne/mlai-capstone-final) and so will not interfere with the code and analysis here.
+I put a *lot* of work in this project, and I learned a *ton*. But I didn't realize just how ambitious the project I was taking on at the start was. I lost interest in really continuing to work on the project at some point because I just felt I wanted to focus more on my education rather than trying to do a great job on this project when there is still so much left for me to learn. So the project is definitely pretty unfinished, and I am sure I won't get a great grade for the amount of polish that went into the final report. But this project left me really excited to learn more and continue down this path. The work I did here felt a lot more exciting to me than most of the work in traditional machine learning techniques that we learned in this course. To continue my education, I signed up for a series of courses offered by OpenCV University (OpenCV is one of the popular python computer vision libraries, as you are probably aware) - these courses include Fundamentals of Computer Vision & Image Processing in Python, Deep Learning with PyTorch, Deep Learning with Tensorflow and Keras, and Advanced Vision Applications with Deep Learning and Transformers, among others.
 
-For that final stage of the project, I plan to work on the following:
+I may revisit this project a few months from now, when I have a lot more experience and knowledge of deep learning and computer vision, and see what I am able to come up with then! For now, I am just kind of burnt out because I feel like I am only continuing to work on the project for the grade - and frankly, me gaining the skills I need and not getting burnt out in the process is a lot more important than a grade! But I did want to at least submit something to share the progress I have made and what I have learned.
+
+### Next Steps
+
+My main next step is to really dive in to learning about computer vision! This project was really hard for someone pretty much completely new to the field, and we only covered computer vision very briefly on a very surface level in the course.
+
+But for some concrete next steps, I have many ideas. Here are just a handful of them, and I am sure I will come up with many more over the next few months as I start my new computer vision courses:
 
 - Update the pipeline and model to classify a whole series of images from a single patient (as in the competition), rather than just a single image as a time
-- Use all data instead of just a small subset; because the full dataset is so large, this will likely require data parallelism, using a multi-GPU VM from Google Cloud/Azure/AWS instead of Google Colab
-- Update the pipeline and model to also make predictions for the 13 different regions of the brain (as required by the competition), expanding the problem beyond simple binary classification
+- Use all data instead of just a small subset; because the full dataset is so large, this will likely require data parallelism, using a multi-GPU VM from e.g. RunPod.
+- Update the pipeline and model to also make predictions for the 13 different regions of the brain (as required by the competition), expanding the problem to predict far more targets.
 - Look into using more advanced imaging techniques, such as object detection or even image segmentation, to attempt to improve classification performance (I think the most powerful approach would be to use a pre-existing image segmentation model that is trained on brain images to segment the image, and use that to transform the input data set into a different kind of dataset that only contains specific small regions of the images where an aneurysm could actually be, i.e., parts of the image that contain intersections of major blood vessels, and then train an image classifier on *that*.)
 - Look into ensembling, i.e., using multiple different models that perform well but are at the same time as different as possible from each other, and use a weighted sum of their predictions as the final prediction.
 
